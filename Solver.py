@@ -156,7 +156,7 @@ class Solver:
         last_attempt_list = []
 
         # itera su tutta la griglia
-        while index < 81:
+        while 0 < index < 81:
             row = index // 9
             column = index % 9
 
@@ -197,10 +197,10 @@ class Solver:
                         attempt += 1
                         index -= 1
                 else:
-                    # torno indietro e provo un'altra guess e rimuovo la soluzione dalla griglia
+                    # aggiorna attempt in modo da cercare una nuova guess per la cella precedente
                     attempt = last_attempt_list.pop() + 1
 
-                    # rimuove la guesse precedente se non è un indizio della griglia originale
+                    # rimuove la guess precedente se non è un indizio della griglia originale
                     row = index // 9
                     column = index % 9
                     if len(self.solver_grid[row][column]) > 0:
@@ -215,6 +215,12 @@ class Solver:
                     index -= 1
 
         self.input_sudoku.print_grid()
+
+
+# TODO trovare un modo di ottimizzare le prestazioni
+# TODO fare in modo che si possa dare in input il file con un nome qualsiasi
+# TODO gestire il caso di griglia invalida
+# TODO aggiungere gestione del caso con ritorno di errore
 
 
 

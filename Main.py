@@ -1,7 +1,7 @@
 
 import Solver
 
-game_version = "0.2.1"
+game_version = "1.0.0"
 
 if __name__ == "__main__":
 
