@@ -1,0 +1,5 @@
+class Grid_Error:
+    OK = 0
+    BASE = -100
+    ERROR_WRONG_CHAR_IN_INPUT_FILE        = BASE -1
+    ERROR_WRONG_LINE_LENGTH_IN_INPUT_FILE = BASE -2
