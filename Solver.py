@@ -1,4 +1,6 @@
 import Grid
+from ErrorTypes import Grid_Error
+
 
 class Solver:
 
@@ -115,57 +117,68 @@ class Solver:
     def solve(self):
 
         # carica la griglia da file
-        self.input_sudoku.load_grid()
+        ret_code = self.input_sudoku.load_grid()
 
-        # trova le possibili soluzioni
-        self.check_guess()
+        if ret_code == Grid_Error.OK:
+            # trova le possibili soluzioni
+            self.check_guess()
 
-        i_can_reduce = True
+            i_can_reduce = True
 
-        # riduce la griglia finchè è possibile
-        while i_can_reduce:
+            # riduce la griglia finchè è possibile
+            while i_can_reduce:
 
-            i_can_reduce = self.reduce_grid()
+                i_can_reduce = self.reduce_grid()
 
-            # aggiorna la griglia
-            self.update_grid()
+                # aggiorna la griglia
+                self.update_grid()
 
-        # controlla se il sudoku è effettivamente risolto
-        solved = True
+            # controlla se il sudoku è effettivamente risolto
+            solved = True
 
-        for row in self.input_sudoku.grid:
-            solved = not 0 in row
+            for row in self.input_sudoku.grid:
+                solved = not 0 in row
 
-        if solved:
-            # mostra il risultato
-            self.input_sudoku.print_grid()
+            if solved:
+                # mostra il risultato
+                self.input_sudoku.print_grid()
+            else:
+                self.solver_tree()
         else:
-            self.solver_tree()
+            print(self.input_sudoku.get_Error_Description(ret_code))
 
     # genera un albero di tentativi per risolvere il sudoku
     def solver_tree(self):
-        print(self.solver_grid[1][4])
 
         index = 0
         attempt = 0
+        forward = True
         last_attempt_list = []
-        num_iteration = 0
 
         # itera su tutta la griglia
         while index < 81:
             row = index // 9
             column = index % 9
 
-            # se ho dei numeri possibili
-            if len(self.solver_grid[row][column]) > 0:
+            # se non ho numeri possibili e devo andare avanti
+            if len(self.solver_grid[row][column]) ==  0 and forward:
+                # incrementa l'indice
+                index += 1
 
+            # se non ho numeri possibili e devo andare indietro
+            elif len(self.solver_grid[row][column]) ==  0 and not forward:
+                # decrementa l'indice
+                index -= 1
+
+            else:
                 if  attempt < len(self.solver_grid[row][column]):
+                    # vai avanti
+                    forward = True
 
-                    # salva il tentativo
-                    last_attempt_list.append(attempt)
+                    # prova un numero
                     guess = self.solver_grid[row][column][attempt]
 
-                    # e se il numero è valido nella configurazione corrente
+                    # se il numero è valido nella configurazione corrente
                     if ( not self.is_number_in_row(guess,row) and
                          not self.is_number_in_column(guess,column) and
                          not self.is_number_in_subgrid(guess,row,column) ):
@@ -173,8 +186,12 @@ class Solver:
                         # aggiorna la griglia
                         self.input_sudoku.update_cell(guess,row,column)
 
-                        # resetta attempt
+                        # salva il tentativo
+                        last_attempt_list.append(attempt)
+
+                        # resetta attempt e continua
                         attempt = 0
+
                     else:
                         # se ho ancora numeri li provo sulla stessa cella
                         attempt += 1
@@ -182,18 +199,22 @@ class Solver:
                 else:
                     # torno indietro e provo un'altra guess e rimuovo la soluzione dalla griglia
                     attempt = last_attempt_list.pop() + 1
-                    self.input_sudoku.update_cell(0,row,column)
-                    index -= 2
 
+                    # rimuove la guesse precedente se non è un indizio della griglia originale
+                    row = index // 9
+                    column = index % 9
+                    if len(self.solver_grid[row][column]) > 0:
+                        self.input_sudoku.update_cell(0, row, column)
 
-            index += 1
-            num_iteration += 1
+                    # torna indietro
+                    forward = False
 
-            if num_iteration == 1000000:
-                self.input_sudoku.print_grid()
-                num_iteration = 0
+                if forward:
+                    index += 1
+                else:
+                    index -= 1
 
-
+        self.input_sudoku.print_grid()
 
 
 

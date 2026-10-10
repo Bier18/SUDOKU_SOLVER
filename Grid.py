@@ -24,7 +24,7 @@ class Grid:
                     self.grid.append(row)
 
         if ret_code != Grid_Error.OK :
-            print( self.get_Error_Description( ret_code ) )
+            return ret_code
         else:
             # stampa di debug
             self.print_grid()
