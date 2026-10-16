@@ -1,4 +1,4 @@
-from ErrorTypes import Grid_Error
+from ErrorTypes import GridError
 class Grid:
 
     def __init__(self):
@@ -17,27 +17,27 @@ class Grid:
                 # popola la griglia
                 row = [int(c) for c in line if c.isdigit()]
                 if len(row) < 9:
-                    ret_code = Grid_Error.ERROR_WRONG_CHAR_IN_INPUT_FILE
+                    ret_code = GridError.ERROR_WRONG_CHAR_IN_INPUT_FILE
                 elif len(row) > 9:
-                    ret_code = Grid_Error.ERROR_WRONG_LINE_LENGTH_IN_INPUT_FILE
+                    ret_code = GridError.ERROR_WRONG_LINE_LENGTH_IN_INPUT_FILE
                 else:
                     self.grid.append(row)
 
-        if ret_code != Grid_Error.OK :
+        if ret_code != GridError.OK :
             return ret_code
         else:
             # stampa di debug
             self.print_grid()
 
-        return Grid_Error.OK
+        return GridError.OK
 
     # interpreta gli errori
     def get_Error_Description(self, error_code):
         match error_code:
 
-            case Grid_Error.ERROR_WRONG_CHAR_IN_INPUT_FILE:
+            case GridError.ERROR_WRONG_CHAR_IN_INPUT_FILE:
                 return "Carattere in input errato"
-            case Grid_Error.ERROR_WRONG_LINE_LENGTH_IN_INPUT_FILE:
+            case GridError.ERROR_WRONG_LINE_LENGTH_IN_INPUT_FILE:
                 return "Errore nella lunghezza della riga"
             case _:
                 return "Errore sconosciuto"

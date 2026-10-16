@@ -1,7 +1,8 @@
 
 import Solver
+from ErrorTypes import SolverError
 
-game_version = "1.0.0"
+game_version = "1.1.0"
 
 if __name__ == "__main__":
 
@@ -14,4 +15,10 @@ if __name__ == "__main__":
     # crea il risolutore
     solver = Solver.Solver()
     # avvia il gioco
-    solver.solve()
+    ret_code = solver.solve()
+
+    if ret_code != SolverError.OK:
+        print(solver.get_error_description(ret_code))
+
+    # TODO trovare un modo di ottimizzare le prestazioni
+    # TODO fare in modo che si possa dare in input il file con un nome qualsiasi

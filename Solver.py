@@ -1,8 +1,11 @@
 import Grid
-from ErrorTypes import Grid_Error
+from ErrorTypes import *
 
 
 class Solver:
+
+    K_MAX_NUMBER_OF_OCCURRENCIES = 1
+    K_MIN_INPUT_NUMBER           = 17
 
     def __init__(self):
         self.solver_grid = [[[] for _ in range(9)] for _ in range(9)]
@@ -119,33 +122,42 @@ class Solver:
         # carica la griglia da file
         ret_code = self.input_sudoku.load_grid()
 
-        if ret_code == Grid_Error.OK:
-            # trova le possibili soluzioni
-            self.check_guess()
+        if ret_code != GridError.OK:
+            ret_code =  SolverError.ERROR_IN_LOADING_GRID
 
-            i_can_reduce = True
-
-            # riduce la griglia finchè è possibile
-            while i_can_reduce:
-
-                i_can_reduce = self.reduce_grid()
-
-                # aggiorna la griglia
-                self.update_grid()
-
-            # controlla se il sudoku è effettivamente risolto
-            solved = True
-
-            for row in self.input_sudoku.grid:
-                solved = not 0 in row
-
-            if solved:
-                # mostra il risultato
-                self.input_sudoku.print_grid()
-            else:
-                self.solver_tree()
         else:
-            print(self.input_sudoku.get_Error_Description(ret_code))
+
+            ret_code = self.check_input_grid()
+
+
+            if ret_code == SolverError.OK:
+
+                # trova le possibili soluzioni
+                self.check_guess()
+
+                i_can_reduce = True
+
+                # riduce la griglia finchè è possibile
+                while i_can_reduce:
+
+                    i_can_reduce = self.reduce_grid()
+
+                    # aggiorna la griglia
+                    self.update_grid()
+
+                # controlla se il sudoku è effettivamente risolto
+                solved = True
+
+                for row in self.input_sudoku.grid:
+                    solved = not 0 in row
+
+                if solved:
+                    # mostra il risultato
+                    self.input_sudoku.print_grid()
+                else:
+                    self.solver_tree()
+
+        return ret_code
 
     # genera un albero di tentativi per risolvere il sudoku
     def solver_tree(self):
@@ -216,14 +228,69 @@ class Solver:
 
         self.input_sudoku.print_grid()
 
+    # spiega gli errori
+    def get_error_description(self, error):
 
-# TODO trovare un modo di ottimizzare le prestazioni
-# TODO fare in modo che si possa dare in input il file con un nome qualsiasi
-# TODO gestire il caso di griglia invalida
-# TODO aggiungere gestione del caso con ritorno di errore
+        match error:
 
+            case SolverError.ERROR_IN_LOADING_GRID:
+                return "Errore nel caricamento della griglia"
 
+            case SolverError.ERROR_REPEATED_NUMBER_IN_ROW:
+                return "Griglia non valida, numero ripetuto in riga"
 
+            case SolverError.ERROR_REPEATED_NUMBER_IN_COLUMN:
+                return "Griglia non valida, numero ripetuto in colonna"
+
+            case SolverError.ERROR_REPEATED_NUMBER_IN_SUBGRID:
+                return "Griglia non valida, numero ripetuto nella sottogriglia"
+
+            case SolverError.ERROR_TOO_FEW_NUMBER_IN_INPUT:
+                return "Griglia non valida, numero di indizi non sufficiente a risolvere univocamente il puzzle"
+
+            case _:
+                return "Errore sconosciuto"
+
+    # controlla se la griglia in input è valida
+    def check_input_grid(self):
+        valid_input_number = 0
+        for i in range(9):
+            for j in range(9):
+                # se la griglia contiene un elemento valido
+                number = self.input_sudoku.grid[i][j]
+                if not  number == 0:
+                    valid_input_number += 1
+
+                    # estrae la riga e la colonna
+                    row = self.input_sudoku.grid[i]
+                    column = [self.input_sudoku.grid[row_index][j] for row_index in range(9)]
+
+                    # controlla la sottogriglia
+                    subgrid_row_index = (i // 3) * 3
+                    subgrid_column_index = (j // 3) * 3
+                    for sgrid_row_index in range(subgrid_row_index, subgrid_row_index+3):
+                        for sgrid_column_index in range(subgrid_column_index, subgrid_column_index+3):
+                            # se trova il numero esce
+                            if ( (not sgrid_row_index == i or
+                                not sgrid_column_index == j )
+                                and number == self.input_sudoku.grid[sgrid_row_index][sgrid_column_index]):
+                                return SolverError.ERROR_REPEATED_NUMBER_IN_SUBGRID
+
+                    # se il numero è ripetuto più volte nella stessa riga
+                    if row.count(number) > Solver.K_MAX_NUMBER_OF_OCCURRENCIES:
+                        # segnala l'errore
+                        return SolverError.ERROR_REPEATED_NUMBER_IN_ROW
+
+                    # se il numero è ripetuto più volte nella stessa colonna
+                    if column.count(number) > Solver.K_MAX_NUMBER_OF_OCCURRENCIES:
+                        # segnala l'errore
+                        return SolverError.ERROR_REPEATED_NUMBER_IN_COLUMN
+
+        # controlla se ci sono abbastanza indizi
+        if valid_input_number < Solver.K_MIN_INPUT_NUMBER:
+            return SolverError.ERROR_TOO_FEW_NUMBER_IN_INPUT
+
+        return SolverError.OK
 
 
 
