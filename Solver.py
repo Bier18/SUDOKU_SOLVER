@@ -1,3 +1,4 @@
+import time
 import Grid
 from ErrorTypes import *
 
@@ -10,6 +11,7 @@ class Solver:
     def __init__(self):
         self.solver_grid = [[[] for _ in range(9)] for _ in range(9)]
         self.input_sudoku = Grid.Grid()
+        self.guess_list = []
 
     # controlla se un numero compare su una riga
     def is_number_in_row(self, number, row_index) -> bool :
@@ -31,91 +33,6 @@ class Solver:
                     return True
         return False
 
-    # valuta i possibili candidati
-    def check_guess(self):
-
-        row = 0
-        column = 0
-        guess = 1
-
-        # cerca i potenziali numeri validi nella griglia
-        while guess < 10:
-
-            # se la cella è vuota
-            if self.input_sudoku.grid[row][column] == 0:
-                # controlla la riga
-                is_number_in_row = self.is_number_in_row(guess, row)
-                # controlla la colonna
-                is_number_in_column = self.is_number_in_column(guess,column)
-
-                # se un numero non compare lo salva come potenziale candidato
-                if not is_number_in_row and not is_number_in_column:
-
-                    self.solver_grid[row][column].append(guess)
-
-            # se ho finito le colonne
-            if column == 8:
-                # resetta l'indice e avanza la riga
-                column = 0
-                row += 1
-            else:
-                column += 1
-
-            # se ho finito la griglia
-            if row == 9:
-                # prova il numero successivo e resetta gli indici
-                row = 0
-                column = 0
-                guess += 1
-
-    # elimina i numeri presenti nella sottogriglia
-    def reduce_grid(self) -> bool :
-        reduced = False
-        row = 0
-        column = 0
-
-        while row < 9:
-            # se ho dei potenziali candidati
-            if len( self.solver_grid[row][column] ) > 0:
-                # controlla la presenza nella sottogriglia
-                for guess in self.solver_grid[row][column]:
-                    # se il numero è presente
-                    if self.is_number_in_subgrid(guess,row,column) or self.is_number_in_column(guess,column) or self.is_number_in_row(guess,row):
-                        # lo rimuove
-                        self.solver_grid[row][column].remove(guess)
-
-                        # aggiorna il flag
-                        if not reduced:
-                            reduced = True
-
-            # se ho finito le colonne
-            if column == 8:
-                # resetta l'indice e avanza la riga
-                column = 0
-                row += 1
-            else:
-                column += 1
-
-        return reduced
-
-    # aggiorna la griglia
-    def update_grid(self):
-        row = 0
-        column = 0
-
-        while row < 9:
-            if len( self.solver_grid[row][column] ) == 1:
-                solution = self.solver_grid[row][column][0]
-                self.input_sudoku.update_cell(solution,row,column)
-
-            # se ho finito le colonne
-            if column == 8:
-                # resetta l'indice e avanza la riga
-                column = 0
-                row += 1
-            else:
-                column += 1
-
     # risolve il sudoku
     def solve(self):
 
@@ -132,101 +49,25 @@ class Solver:
 
             if ret_code == SolverError.OK:
 
-                # trova le possibili soluzioni
-                self.check_guess()
+                start = time.perf_counter()
 
-                i_can_reduce = True
+                # trova tutte le possibili soluzioni
+                self.fill_guess_list()
 
-                # riduce la griglia finchè è possibile
-                while i_can_reduce:
+                # ordina la lista di possibili soluzioni in base al numero delle stesse
+                self.guess_list.sort(key=lambda x: x[-1])
 
-                    i_can_reduce = self.reduce_grid()
+                # risolve il sudoku
+                self.backtracking_solver()
 
-                    # aggiorna la griglia
-                    self.update_grid()
+                # stampa la soluzione
+                self.input_sudoku.print_grid()
 
-                # controlla se il sudoku è effettivamente risolto
-                solved = True
+                end = time.perf_counter()
 
-                for row in self.input_sudoku.grid:
-                    solved = not 0 in row
-
-                if solved:
-                    # mostra il risultato
-                    self.input_sudoku.print_grid()
-                else:
-                    self.solver_tree()
+                print(f'TEMPO NECESSARIO PER LA SOLUZIONE = {end - start} s')
 
         return ret_code
-
-    # genera un albero di tentativi per risolvere il sudoku
-    def solver_tree(self):
-
-        index = 0
-        attempt = 0
-        forward = True
-        last_attempt_list = []
-
-        # itera su tutta la griglia
-        while 0 < index < 81:
-            row = index // 9
-            column = index % 9
-
-            # se non ho numeri possibili e devo andare avanti
-            if len(self.solver_grid[row][column]) ==  0 and forward:
-                # incrementa l'indice
-                index += 1
-
-            # se non ho numeri possibili e devo andare indietro
-            elif len(self.solver_grid[row][column]) ==  0 and not forward:
-                # decrementa l'indice
-                index -= 1
-
-            else:
-                if  attempt < len(self.solver_grid[row][column]):
-                    # vai avanti
-                    forward = True
-
-                    # prova un numero
-                    guess = self.solver_grid[row][column][attempt]
-
-                    # se il numero è valido nella configurazione corrente
-                    if ( not self.is_number_in_row(guess,row) and
-                         not self.is_number_in_column(guess,column) and
-                         not self.is_number_in_subgrid(guess,row,column) ):
-
-                        # aggiorna la griglia
-                        self.input_sudoku.update_cell(guess,row,column)
-
-                        # salva il tentativo
-                        last_attempt_list.append(attempt)
-
-                        # resetta attempt e continua
-                        attempt = 0
-
-                    else:
-                        # se ho ancora numeri li provo sulla stessa cella
-                        attempt += 1
-                        index -= 1
-                else:
-                    # aggiorna attempt in modo da cercare una nuova guess per la cella precedente
-                    attempt = last_attempt_list.pop() + 1
-
-                    # rimuove la guess precedente se non è un indizio della griglia originale
-                    row = index // 9
-                    column = index % 9
-                    if len(self.solver_grid[row][column]) > 0:
-                        self.input_sudoku.update_cell(0, row, column)
-
-                    # torna indietro
-                    forward = False
-
-                if forward:
-                    index += 1
-                else:
-                    index -= 1
-
-        self.input_sudoku.print_grid()
 
     # spiega gli errori
     def get_error_description(self, error):
@@ -292,9 +133,94 @@ class Solver:
 
         return SolverError.OK
 
+    # genera un albero di tentativi per risolvere il sudoku
+    def backtracking_solver(self):
+        # inizializza la variabile per risalire al numero
+        number_to_try = 1
+        i = 0
+        last_number_list = [0 for _ in range(len(self.guess_list))]
+        # itera su tutte le guess
+        while i < len( self.guess_list ):
+            guess = self.guess_list[i]
+
+            # recupera il numero usato come maschera, la riga e la colonna
+            mask = guess[0]
+            row = guess[1]
+            column = guess[2]
 
 
+            while mask & ( 1 << (number_to_try - 1)) == 0 and number_to_try < 10:
+                # aggiorna il numero da trovare
+                number_to_try += 1
 
+            # se ho esaurito le possibilità
+            if number_to_try == 10:
+
+                # torna indietro
+                number_to_try = last_number_list[i-1] + 1
+                last_guess = self.guess_list[i-1]
+                last_row = last_guess[1]
+                last_column = last_guess[2]
+                self.input_sudoku.update_cell(0, last_row, last_column)
+                i -= 2
+            else:
+
+                # se ha trovato il numero corretto e se il numero è valido
+                is_number_in_row = self.is_number_in_row(number_to_try, row)
+                is_number_in_column = self.is_number_in_column(number_to_try, column)
+                is_number_in_subgrid = self.is_number_in_subgrid(number_to_try,row,column)
+
+                if not is_number_in_row and not is_number_in_column and not is_number_in_subgrid:
+
+                    # aggiorna la griglia
+                    self.input_sudoku.update_cell(number_to_try,row,column)
+
+                    # salva la guess e resetta il numero
+                    last_number_list[i] = number_to_try
+                    number_to_try = 1
+                # se non è valido continua sul posto
+                else:
+
+                    number_to_try += 1
+                    i -= 1
+
+            i += 1
+
+    # verifica le possibilità
+    def fill_guess_list( self ):
+        cell = 0
+        # itera su tutte le celle
+        while cell < 81:
+            row = cell // 9
+            column = cell % 9
+
+            # se la cella è vuota
+            if self.input_sudoku.grid[row][column] == 0:
+
+                #inizializza il numero per il masking e il counter delle possibilità
+                mask = 0
+                num_of_choices = 0
+
+                # controlla la guess
+                for guess in range(1,10):
+                    is_guess_in_row = self.is_number_in_row(guess,row)
+                    is_guess_in_column = self.is_number_in_column(guess,column)
+                    is_guess_in_subgrid = self.is_number_in_subgrid(guess,row,column)
+
+                    # se la guess non è in una riga, colonna o sottogriglia
+                    if ( not is_guess_in_row    and
+                         not is_guess_in_column and
+                         not is_guess_in_subgrid ):
+
+                        # salva la griglia usando il bitmasking
+                        mask |= 1 << ( guess - 1 )
+                        # aggiorna il contatore
+                        num_of_choices += 1
+
+                # salva le guess possibili
+                self.guess_list.append( (mask, row, column, num_of_choices) )
+
+            cell += 1
 
 
 
